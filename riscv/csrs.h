@@ -138,6 +138,54 @@ class pmpcfg_csr_t: public csr_t {
   virtual bool unlogged_write(const reg_t val) noexcept override;
 };
 
+class srcmd_csr_t: public csr_t {
+  public:
+   srcmd_csr_t(processor_t* const proc, const reg_t addr);
+   virtual reg_t read() const noexcept override;
+
+   bool verify_association(const reg_t j) const noexcept;
+
+  protected:
+   virtual bool unlogged_write(const reg_t val) noexcept override;
+  private:
+   reg_t val;
+};
+
+typedef std::shared_ptr<srcmd_csr_t> srcmd_csr_t_p;
+
+class mdcfg_csr_t: public csr_t {
+  public:
+   mdcfg_csr_t(processor_t* const proc, const reg_t addr);
+   virtual reg_t read() const noexcept override;
+
+   reg_t get_top_range() const noexcept;
+  protected:
+   virtual bool unlogged_write(const reg_t val) noexcept override;
+  private:
+   reg_t val;
+};
+
+class entry_addr_csr_t: public csr_t {
+ public:
+  entry_addr_csr_t(processor_t* const proc, const reg_t addr, csr_t_p cfg);
+  virtual reg_t read() const noexcept override;
+ protected:
+  virtual bool unlogged_write(const reg_t val) noexcept override;
+ private:
+  reg_t val;
+  csr_t_p cfg;
+};
+
+class entry_cfg_csr_t: public csr_t {
+ public:
+  entry_cfg_csr_t(processor_t* const proc, const reg_t addr);
+  virtual reg_t read() const noexcept override;
+ protected:
+  virtual bool unlogged_write(const reg_t val) noexcept override;
+ private:
+  reg_t val;
+};
+
 class mseccfg_csr_t: public basic_csr_t {
  public:
   mseccfg_csr_t(processor_t* const proc, const reg_t addr);
@@ -283,6 +331,16 @@ class rv32_low_csr_t: public csr_t {
   csr_t_p orig;
 };
 
+class srcmd_en_csr_t: public rv32_low_csr_t {
+ public:
+  srcmd_en_csr_t(processor_t* const proc, const reg_t addr, srcmd_csr_t_p srcmd);
+
+  bool verify_association(const reg_t j) const noexcept;
+
+private:
+  srcmd_csr_t_p srcmd;
+};
+
 class rv32_high_csr_t: public csr_t {
  public:
   rv32_high_csr_t(processor_t* const proc, const reg_t addr, csr_t_p orig);
@@ -293,6 +351,15 @@ class rv32_high_csr_t: public csr_t {
   virtual reg_t written_value() const noexcept override;
  private:
   csr_t_p orig;
+};
+
+class srcmd_enh_csr_t: public rv32_high_csr_t {
+ public:
+  srcmd_enh_csr_t(processor_t* const proc, const reg_t addr, srcmd_csr_t_p srcmd);
+
+  bool verify_association(const reg_t j) const noexcept;
+private:
+  srcmd_csr_t_p srcmd;
 };
 
 class sstatus_proxy_csr_t final: public base_status_csr_t {

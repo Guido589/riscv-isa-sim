@@ -278,6 +278,90 @@ bool pmpcfg_csr_t::unlogged_write(const reg_t val) noexcept {
   return write_success;
 }
 
+// implement class srcmd_csr_t
+srcmd_csr_t::srcmd_csr_t(processor_t* const proc, const reg_t addr):
+  csr_t(proc, addr),
+  val(0) {
+}
+
+reg_t srcmd_csr_t::read() const noexcept {
+  return val;
+}
+
+bool srcmd_csr_t::unlogged_write(const reg_t val) noexcept {
+  // TODO: Check sid_num > 0 
+  this->val = val;
+  return true;
+}
+
+// Verifies if the j-th MD is associated with the source ID
+bool srcmd_csr_t::verify_association(const reg_t j) const noexcept {
+  if (j < 0 /* && TODO: Check j > md_num */)
+    return false;
+
+  return this->val & (1 << (j + SRCMD_BITMAP_BASE));
+}
+
+// implement class mdcfg_csr_t
+mdcfg_csr_t::mdcfg_csr_t(processor_t* const proc, const reg_t addr):
+  csr_t(proc, addr),
+  val(0) {
+}
+
+reg_t mdcfg_csr_t::read() const noexcept {
+  return val;
+}
+
+bool mdcfg_csr_t::unlogged_write(const reg_t val) noexcept {
+  // TODO: Check md_num > 0 
+
+  // Bits MDCFG_RSV must be zero on write
+  // Specified in section 5.5: MDCFG Table, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+  this->val = val & ~MDCFG_RSV;
+  return true;
+}
+
+reg_t mdcfg_csr_t::get_top_range() const noexcept {
+  // Return the top range of the MD which are the bits MDCFG_TOP_RANGE
+  return val & MDCFG_TOP_RANGE;
+}
+
+// implement class entry_addr_csr_t
+entry_addr_csr_t::entry_addr_csr_t(processor_t* const proc, const reg_t addr, csr_t_p cfg):
+  csr_t(proc, addr),
+  val(0),
+  cfg(cfg) {
+}
+
+reg_t entry_addr_csr_t::read() const noexcept {
+  return val;
+}
+
+bool entry_addr_csr_t::unlogged_write(const reg_t val) noexcept {
+  // TODO: Check entry_num > 0
+  this->val = val;
+  return true;
+}
+
+// implement class entry_cfg_csr_t
+entry_cfg_csr_t::entry_cfg_csr_t(processor_t* const proc, const reg_t addr):
+  csr_t(proc, addr), 
+  val(0) {
+}
+
+reg_t entry_cfg_csr_t::read() const noexcept {
+  return val;
+}
+
+bool entry_cfg_csr_t::unlogged_write(const reg_t val) noexcept {
+  // TODO: Check entry_num > 0
+
+  // Bits ENTRY_CFG_RSV must be zero on write
+  // Specified in section 5.7: Entry Array Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+  this->val = val & ~ENTRY_CFG_RSV;
+  return true;
+}
+
 // implement class mseccfg_csr_t
 mseccfg_csr_t::mseccfg_csr_t(processor_t* const proc, const reg_t addr):
     basic_csr_t(proc, addr, 0) {
@@ -559,6 +643,20 @@ reg_t rv32_low_csr_t::written_value() const noexcept {
   return orig->written_value() & 0xffffffffU;
 }
 
+// implement class srcmd_en_csr_t
+srcmd_en_csr_t::srcmd_en_csr_t(processor_t* const proc, const reg_t addr, srcmd_csr_t_p orig):
+  rv32_low_csr_t(proc, addr, orig),
+  srcmd(orig) {
+}
+
+// Verifies if the j-th MD is associated with the source ID
+bool srcmd_en_csr_t::verify_association(const reg_t j) const noexcept {
+  if (j > SRCMD_EN_MAX_IDX)
+    return false;
+
+  return srcmd->verify_association(j);
+}
+
 // implement class rv32_high_csr_t
 rv32_high_csr_t::rv32_high_csr_t(processor_t* const proc, const reg_t addr, csr_t_p orig):
   csr_t(proc, addr),
@@ -579,6 +677,21 @@ bool rv32_high_csr_t::unlogged_write(const reg_t val) noexcept {
 
 reg_t rv32_high_csr_t::written_value() const noexcept {
   return (orig->written_value() >> 32) & 0xffffffffU;
+}
+
+// implement class srcmd_enh_csr_t
+srcmd_enh_csr_t::srcmd_enh_csr_t(processor_t* const proc, const reg_t addr, srcmd_csr_t_p orig):
+  rv32_high_csr_t(proc, addr, orig),
+  srcmd(orig) {
+}
+
+// Verifies if the j-th MD is associated with the source ID
+bool srcmd_enh_csr_t::verify_association(const reg_t j) const noexcept {
+  if (j > SRCMD_ENH_MAX_IDX)
+    return false;
+
+  const reg_t updated_j = j + (SRCMD_EN_MAX_IDX + 1);
+  return srcmd->verify_association(updated_j);
 }
 
 // implement class sstatus_csr_t
