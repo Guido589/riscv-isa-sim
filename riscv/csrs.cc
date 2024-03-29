@@ -290,6 +290,7 @@ reg_t srcmd_csr_t::read() const noexcept {
 
 bool srcmd_csr_t::unlogged_write(const reg_t val) noexcept {
   // TODO: Check sid_num > 0 
+  
   this->val = val;
   return true;
 }
