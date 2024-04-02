@@ -339,9 +339,75 @@ reg_t entry_addr_csr_t::read() const noexcept {
 }
 
 bool entry_addr_csr_t::unlogged_write(const reg_t val) noexcept {
-  // TODO: Check entry_num > 0
+  // TODO: Check entry_num > 0 && entry_idx < entry_num
   this->val = val;
   return true;
+}
+
+// Returns the physical upper bound address of the entry
+reg_t entry_addr_csr_t::tor_paddr() const noexcept {
+  return val << ENTRY_ADDR_SHIFT;
+}
+
+// Returns the physical lower bound address of the entry
+reg_t entry_addr_csr_t::tor_base_paddr() const noexcept {
+  /*
+  TODO
+  // Check if it is the first entry, if so, the base address is equal to 0
+  // Specified in section 3.6.1 Physical Memory Protection CSRs, of the RISC-V Instruction Set Manual (Volume II)
+  if (entry_idx == 0) return 0;
+  return state->entryaddr[entry_idx-1]->tor_paddr();
+  */
+ return 0;
+}
+
+// Checks if the entry matches the address range
+bool entry_addr_csr_t::match(reg_t addr, reg_t len) const noexcept {
+  const reg_t cfg_val = cfg->read();
+
+  // Extract the address mode from the configuration
+  const reg_t cfga  = cfg_val & ENTRY_CFG_A;
+  const bool is_off = cfga == ENTRY_CFG_OFF;
+  const bool is_tor = cfga == ENTRY_CFG_TOR;
+
+  bool matches = false;
+  // When the a field is 0, the entry is disabled and does not match any address range
+  // Specified in section 3.6.1 Physical Memory Protection CSRs, of the RISC-V Instruction Set Manual (Volume II)
+  if (is_off) 
+    matches = false;
+  // Top of range address mode
+  if (is_tor) {
+    reg_t tor_base_addr = tor_base_paddr();
+    reg_t tor_addr      = tor_paddr();
+    reg_t request_base  = addr;
+    reg_t request_addr  = addr + len;
+    // The entry matches any address in the range = entry_addr(i−1) ≤ a < entry_addr(i)
+    // Specified in section 3.6.1 Physical Memory Protection CSRs, of the RISC-V Instruction Set Manual (Volume II)
+    matches = tor_base_addr <= request_base && 
+              request_addr < tor_addr;
+  }
+  
+  return matches;
+}
+
+// Checks if the access type is allowed by the entry
+bool entry_addr_csr_t::access_ok(access_type type) const noexcept {
+  const reg_t cfg_val = cfg->read();
+
+  // Extract the permission bits from the configuration
+  const bool cfgr = cfg_val & ENTRY_CFG_R;
+  const bool cfgw = cfg_val & ENTRY_CFG_W;
+  const bool cfgx = cfg_val & ENTRY_CFG_X;
+
+  // Extract the access type
+  const bool accr = type == LOAD;
+  const bool accw = type == STORE;
+  const bool accx = type == FETCH;
+
+  // The access is allowed if permission bit is set for it
+  return (accr && cfgr) || 
+         (accw && cfgw) || 
+         (accx && cfgx);
 }
 
 // implement class entry_cfg_csr_t

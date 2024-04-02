@@ -315,14 +315,15 @@
 #define MDCFG_TOP_RANGE 0xFFFF
 #define MDCFG_RSV       0xFFFFFFFFFFFF0000
 
+#define ENTRY_ADDR_SHIFT 2
+
 #define ENTRY_CFG_R     0x01
 #define ENTRY_CFG_W     0x02
 #define ENTRY_CFG_X     0x04
 #define ENTRY_CFG_A     0x18
 #define ENTRY_CFG_RSV   0xFFFFFFFFFFFFFFE0
-#define ENTRY_CFG_TOR   0x8
-#define ENTRY_CFG_NA4   0x10
-#define ENTRY_CFG_NAPOT 0x18
+#define ENTRY_CFG_OFF   0
+#define ENTRY_CFG_TOR   0x08
 
 #define IRQ_U_SOFT   0
 #define IRQ_S_SOFT   1
