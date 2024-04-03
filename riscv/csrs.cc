@@ -297,10 +297,13 @@ bool srcmd_csr_t::unlogged_write(const reg_t val) noexcept {
 
 // Verifies if the j-th MD is associated with the source ID
 bool srcmd_csr_t::verify_association(const reg_t j) const noexcept {
-  if (j < 0 /* && TODO: Check j > md_num */)
+  // Ensure j is within the valid range
+  if (j < 0 /* || TODO: Check j > md_num */)
     return false;
 
-  return this->val & (1 << (j + SRCMD_BITMAP_BASE));
+  // Index into the md field, base of bitmap is offset by SRCMD_BITMAP_BASE 
+  // Specified in section 5.6: SRCMD Table Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+  return val & (1 << (j + SRCMD_BITMAP_BASE));
 }
 
 // implement class mdcfg_csr_t
@@ -322,9 +325,32 @@ bool mdcfg_csr_t::unlogged_write(const reg_t val) noexcept {
   return true;
 }
 
-reg_t mdcfg_csr_t::get_top_range() const noexcept {
-  // Return the top range of the MD which are the bits MDCFG_TOP_RANGE
+// Returns the top index of the memory domain
+reg_t mdcfg_csr_t::top_index() const noexcept {
   return val & MDCFG_TOP_RANGE;
+}
+
+// Returns the base index of the memory domain
+reg_t mdcfg_csr_t::base_index() const noexcept {
+    /*
+  TODO
+  // Check if it is the first memory domain, if so, the base index is equal to 0
+  // Specified in section 5.5: MDCFG Table, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+  if (mdcfg_idx == 0) return 0;
+  return state->mdcfg[mdcfg_idx-1]->top_index();
+  */
+ return 0;
+}
+
+// Checks if the entry belongs to the memory domain
+bool mdcfg_csr_t::entry_belongs_to_md(reg_t entry_idx) const noexcept {
+  reg_t mdcfg_base_index = base_index();
+  reg_t mdcfg_top_index  = top_index();
+
+  // The entry belongs to the MD if the entry index is within the range: MDCFG(m-1).t ≤ entry_idx < MDCFG(m).t
+  // Specified in section 5.5: MDCFG Table, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+  return mdcfg_base_index <= entry_idx && 
+         entry_idx < mdcfg_top_index;
 }
 
 // implement class entry_addr_csr_t
@@ -339,13 +365,15 @@ reg_t entry_addr_csr_t::read() const noexcept {
 }
 
 bool entry_addr_csr_t::unlogged_write(const reg_t val) noexcept {
-  // TODO: Check entry_num > 0 && entry_idx < entry_num
+  // TODO: Check entry_num > 0 || entry_idx < entry_num
   this->val = val;
   return true;
 }
 
 // Returns the physical upper bound address of the entry
 reg_t entry_addr_csr_t::tor_paddr() const noexcept {
+  // Shift the value by ENTRY_ADDR_SHIFT to get the physical address: [63:0] -> [65:2]
+  // Specified in section 5.7: Entry Array Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
   return val << ENTRY_ADDR_SHIFT;
 }
 
@@ -377,14 +405,14 @@ bool entry_addr_csr_t::match(reg_t addr, reg_t len) const noexcept {
     matches = false;
   // Top of range address mode
   if (is_tor) {
-    reg_t tor_base_addr = tor_base_paddr();
-    reg_t tor_addr      = tor_paddr();
-    reg_t request_base  = addr;
-    reg_t request_addr  = addr + len;
-    // The entry matches any address in the range = entry_addr(i−1) ≤ a < entry_addr(i)
+    reg_t tor_base_addr         = tor_base_paddr();
+    reg_t tor_top_addr          = tor_paddr();
+    reg_t transaction_base_addr = addr;
+    reg_t transaction_top_addr  = addr + len;
+    // The entry matches any address in the range: entry_addr(i−1) ≤ a < entry_addr(i)
     // Specified in section 3.6.1 Physical Memory Protection CSRs, of the RISC-V Instruction Set Manual (Volume II)
-    matches = tor_base_addr <= request_base && 
-              request_addr < tor_addr;
+    matches = tor_base_addr <= transaction_base_addr && 
+              transaction_top_addr < tor_top_addr;
   }
   
   return matches;

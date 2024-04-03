@@ -158,10 +158,14 @@ class mdcfg_csr_t: public csr_t {
    mdcfg_csr_t(processor_t* const proc, const reg_t addr);
    virtual reg_t read() const noexcept override;
 
-   reg_t get_top_range() const noexcept;
+   bool entry_belongs_to_md(reg_t entry_idx) const noexcept;
   protected:
    virtual bool unlogged_write(const reg_t val) noexcept override;
   private:
+   reg_t top_index() const noexcept;
+
+   reg_t base_index() const noexcept;
+
    reg_t val;
 };
 
