@@ -153,6 +153,15 @@ struct state_t
   static const int max_pmp = 64;
   pmpaddr_csr_t_p pmpaddr[max_pmp];
 
+  // IOPMP CSRs
+  // Specified in section 3.1: The Full Model, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+  static const int max_mdcfg      = 63;
+  static const int max_srcmd      = 16;
+  static const int max_entry_addr = 16;
+
+  mdcfg_csr_t_p mdcfg[max_mdcfg];
+  entry_addr_csr_t_p entry_addr[max_entry_addr];
+
   float_csr_t_p fflags;
   float_csr_t_p frm;
 
@@ -310,6 +319,10 @@ public:
   void set_pmp_granularity(reg_t pmp_granularity);
   void set_mmu_capability(int cap);
 
+  void set_md_num(reg_t n);
+  void set_sid_num(reg_t n);
+  void set_entry_num(reg_t n);
+
   const char* get_symbol(uint64_t addr);
 
   void clear_waiting_for_interrupt() { in_wfi = false; };
@@ -370,12 +383,17 @@ private:
   void register_base_instructions();
   insn_func_t decode_insn(insn_t insn);
 
+  void set_variable_range_check(reg_t *variable, reg_t n, int max_value, const char* variable_description);
+
   // Track repeated executions for processor_t::disasm()
   uint64_t last_pc, last_bits, executions;
 public:
   entropy_source es; // Crypto ISE Entropy source.
 
   reg_t n_pmp;
+  reg_t md_num;
+  reg_t sid_num;
+  reg_t entry_num;
   reg_t lg_pmp_granularity;
   reg_t pmp_tor_mask() { return -(reg_t(1) << (lg_pmp_granularity - PMP_SHIFT)); }
 

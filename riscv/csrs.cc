@@ -298,7 +298,7 @@ bool srcmd_csr_t::unlogged_write(const reg_t val) noexcept {
 // Verifies if the j-th MD is associated with the source ID
 bool srcmd_csr_t::verify_association(const reg_t j) const noexcept {
   // Ensure j is within the valid range
-  if (j < 0 /* || TODO: Check j > md_num */)
+  if (j < 0 || j >= state->max_mdcfg)
     return false;
 
   // Index into the md field, base of bitmap is offset by SRCMD_BITMAP_BASE 
@@ -309,7 +309,8 @@ bool srcmd_csr_t::verify_association(const reg_t j) const noexcept {
 // implement class mdcfg_csr_t
 mdcfg_csr_t::mdcfg_csr_t(processor_t* const proc, const reg_t addr):
   csr_t(proc, addr),
-  val(0) {
+  val(0),
+  mdcfg_idx(address - CSR_MDCFG0){
 }
 
 reg_t mdcfg_csr_t::read() const noexcept {
@@ -332,14 +333,10 @@ reg_t mdcfg_csr_t::top_index() const noexcept {
 
 // Returns the base index of the memory domain
 reg_t mdcfg_csr_t::base_index() const noexcept {
-    /*
-  TODO
   // Check if it is the first memory domain, if so, the base index is equal to 0
   // Specified in section 5.5: MDCFG Table, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
   if (mdcfg_idx == 0) return 0;
   return state->mdcfg[mdcfg_idx-1]->top_index();
-  */
- return 0;
 }
 
 // Checks if the entry belongs to the memory domain
@@ -357,7 +354,8 @@ bool mdcfg_csr_t::entry_belongs_to_md(reg_t entry_idx) const noexcept {
 entry_addr_csr_t::entry_addr_csr_t(processor_t* const proc, const reg_t addr, csr_t_p cfg):
   csr_t(proc, addr),
   val(0),
-  cfg(cfg) {
+  cfg(cfg),
+  entry_idx(address - CSR_ENTRY_ADDR0){
 }
 
 reg_t entry_addr_csr_t::read() const noexcept {
@@ -379,14 +377,10 @@ reg_t entry_addr_csr_t::tor_paddr() const noexcept {
 
 // Returns the physical lower bound address of the entry
 reg_t entry_addr_csr_t::tor_base_paddr() const noexcept {
-  /*
-  TODO
   // Check if it is the first entry, if so, the base address is equal to 0
   // Specified in section 3.6.1 Physical Memory Protection CSRs, of the RISC-V Instruction Set Manual (Volume II)
   if (entry_idx == 0) return 0;
-  return state->entryaddr[entry_idx-1]->tor_paddr();
-  */
- return 0;
+  return state->entry_addr[entry_idx-1]->tor_paddr();
 }
 
 // Checks if the entry matches the address range

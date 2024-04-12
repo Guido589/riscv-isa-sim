@@ -66,6 +66,10 @@ processor_t::processor_t(const isa_parser_t *isa, const cfg_t *cfg,
   set_pmp_granularity(cfg->pmpgranularity);
   set_pmp_num(cfg->pmpregions);
 
+  set_md_num(cfg->memorydomains);
+  set_sid_num(cfg->sourceids);
+  set_entry_num(cfg->entrynum);
+
   if (isa->get_max_xlen() == 32)
     set_mmu_capability(IMPL_MMU_SV32);
   else if (isa->get_max_xlen() == 64)
@@ -426,6 +430,30 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
     csrmap[addr] = std::make_shared<pmpcfg_csr_t>(proc, addr);
   }
 
+  // Initialize the mdcfg csrs
+  // Specified in section 5.5: MDCFG Table, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+  for (int i = 0; i < max_mdcfg; ++i) {
+    reg_t addr = CSR_MDCFG0 + i * 4;
+    csrmap[addr] = mdcfg[i] = std::make_shared<mdcfg_csr_t>(proc, addr);
+  }
+
+  // Initialize the srcmd csrs
+  // Specified in section 5.6: SRCMD Table Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+  for (int i = 0; i < max_srcmd; ++i) {
+    reg_t addr = CSR_SRCMD0 + i * 32;
+    csrmap[addr] = std::make_shared<srcmd_csr_t>(proc, addr);
+  }
+
+  // Initialize the entry address and config csrs
+  // Specified in section 5.7: Entry Array Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+  for (int i = 0; i < max_entry_addr; ++i) {
+    csr_t_p cfg;
+    reg_t addr_cfg = CSR_ENTRY_CFG0 + i * 16;
+    reg_t addr     = CSR_ENTRY_ADDR0 + i * 16;
+    csrmap[addr_cfg] = cfg = std::make_shared<entry_cfg_csr_t>(proc, addr_cfg);
+    csrmap[addr] = entry_addr[i] = std::make_shared<entry_addr_csr_t>(proc, addr, cfg);
+  }
+
   csrmap[CSR_FFLAGS] = fflags = std::make_shared<float_csr_t>(proc, CSR_FFLAGS, FSR_AEXC >> FSR_AEXC_SHIFT, 0);
   csrmap[CSR_FRM] = frm = std::make_shared<float_csr_t>(proc, CSR_FRM, FSR_RD >> FSR_RD_SHIFT, 0);
   assert(FSR_AEXC_SHIFT == 0);  // composite_csr_t assumes fflags begins at bit 0
@@ -673,6 +701,30 @@ void processor_t::set_pmp_granularity(reg_t gran)
   }
 
   lg_pmp_granularity = ctz(gran);
+}
+
+// Set the value of a variable, checking if it is within the allowed range
+void processor_t::set_variable_range_check(reg_t *variable, reg_t n, int max_value, const char* variable_description) {
+    // Check if the value is within the allowed range
+    if (n > static_cast<reg_t>(max_value)) {
+        fprintf(stderr, "error: %s requested (%" PRIu64 ") exceeds maximum (%d)\n", variable_description, n, max_value);
+        abort();
+    }
+    // Set the variable to the given value
+    *variable = n;
+}
+
+// Initialize the IOPMP configuration variables
+void processor_t::set_md_num(reg_t n) {
+    set_variable_range_check(&md_num, n, state.max_mdcfg, "number of memory domains");
+}
+
+void processor_t::set_sid_num(reg_t n) {
+    set_variable_range_check(&sid_num, n, state.max_srcmd, "number of source ids");
+}
+
+void processor_t::set_entry_num(reg_t n) {
+    set_variable_range_check(&entry_num, n, state.max_entry_addr, "number of entries");
 }
 
 void processor_t::set_mmu_capability(int cap)

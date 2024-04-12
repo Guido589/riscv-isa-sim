@@ -44,6 +44,9 @@ static void help(int exit_code = 1)
   fprintf(stderr, "  --isa=<name>          RISC-V ISA string [default %s]\n", DEFAULT_ISA);
   fprintf(stderr, "  --pmpregions=<n>      Number of PMP regions [default 16]\n");
   fprintf(stderr, "  --pmpgranularity=<n>  PMP Granularity in bytes [default 4]\n");
+  fprintf(stderr, "  --memory-domains=<n>  Number of memory domains [default 63]\n");
+  fprintf(stderr, "  --source-ids=<n>      Number of transaction sources [default 16]\n");
+  fprintf(stderr, "  --entry-num=<n>       Length of the entry array [default 16]\n");
   fprintf(stderr, "  --priv=<m|mu|msu>     RISC-V privilege modes supported [default %s]\n", DEFAULT_PRIV);
   fprintf(stderr, "  --varch=<name>        RISC-V Vector uArch string [default %s]\n", DEFAULT_VARCH);
   fprintf(stderr, "  --pc=<address>        Override ELF entry point\n");
@@ -404,6 +407,9 @@ int main(int argc, char** argv)
   parser.option(0, "isa", 1, [&](const char* s){cfg.isa = s;});
   parser.option(0, "pmpregions", 1, [&](const char* s){cfg.pmpregions = atoul_safe(s);});
   parser.option(0, "pmpgranularity", 1, [&](const char* s){cfg.pmpgranularity = atoul_safe(s);});
+  parser.option(0, "memory-domains", 1, [&](const char* s){cfg.memorydomains = atoul_safe(s);});
+  parser.option(0, "source-ids", 1, [&](const char* s){cfg.sourceids = atoul_safe(s);});
+  parser.option(0, "entry-num", 1, [&](const char* s){cfg.entrynum = atoul_safe(s);});
   parser.option(0, "priv", 1, [&](const char* s){cfg.priv = s;});
   parser.option(0, "varch", 1, [&](const char* s){cfg.varch = s;});
   parser.option(0, "device", 1, device_parser);

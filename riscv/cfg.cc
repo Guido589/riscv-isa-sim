@@ -40,6 +40,9 @@ cfg_t::cfg_t()
   endianness       = endianness_little;
   pmpregions       = 16;
   pmpgranularity   = (1 << PMP_SHIFT);
+  memorydomains    = 63;
+  sourceids        = 16;
+  entrynum         = 16;
   mem_layout       = std::vector<mem_cfg_t>({mem_cfg_t(reg_t(DRAM_BASE), (size_t)2048 << 20)});
   hartids          = std::vector<size_t>({0});
   explicit_hartids = false;

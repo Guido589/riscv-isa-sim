@@ -72,6 +72,9 @@ public:
   endianness_t            endianness;
   reg_t                   pmpregions;
   reg_t                   pmpgranularity;
+  reg_t                   memorydomains;
+  reg_t                   sourceids;
+  reg_t                   entrynum;
   std::vector<mem_cfg_t>  mem_layout;
   std::optional<reg_t>    start_pc;
   std::vector<size_t>     hartids;

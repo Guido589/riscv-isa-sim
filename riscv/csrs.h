@@ -167,7 +167,10 @@ class mdcfg_csr_t: public csr_t {
    reg_t base_index() const noexcept;
 
    reg_t val;
+   const size_t mdcfg_idx;
 };
+
+typedef std::shared_ptr<mdcfg_csr_t> mdcfg_csr_t_p;
 
 class entry_addr_csr_t: public csr_t {
  public:
@@ -187,7 +190,10 @@ class entry_addr_csr_t: public csr_t {
 
   reg_t val;
   csr_t_p cfg;
+  const size_t entry_idx;
 };
+
+typedef std::shared_ptr<entry_addr_csr_t> entry_addr_csr_t_p;
 
 class entry_cfg_csr_t: public csr_t {
  public:
@@ -198,6 +204,8 @@ class entry_cfg_csr_t: public csr_t {
  private:
   reg_t val;
 };
+
+typedef std::shared_ptr<entry_cfg_csr_t> entry_cfg_csr_t_p;
 
 class mseccfg_csr_t: public basic_csr_t {
  public:
