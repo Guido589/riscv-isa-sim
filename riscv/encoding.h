@@ -3630,7 +3630,7 @@
 #define CSR_MDCFG57 0x8e4
 #define CSR_MDCFG58 0x8e8
 #define CSR_MDCFG59 0x8ec
-#define CSR_MDCFG60 0x8f0
+// #define CSR_MDCFG60 0x8f0
 #define CSR_MDCFG61 0x8f4
 #define CSR_MDCFG62 0x8f8
 
