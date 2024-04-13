@@ -433,6 +433,9 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
   // Initialize the mdcfg csrs
   // Specified in section 5.5: MDCFG Table, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
   for (int i = 0; i < max_mdcfg; ++i) {
+    // Temporary fix to skip MDCFG #60 due to riscv-tests expecting csr2288 (0x8f0) to be non-existent
+    if (i == 60)
+      continue;
     reg_t addr = CSR_MDCFG0 + i * 4;
     csrmap[addr] = mdcfg[i] = std::make_shared<mdcfg_csr_t>(proc, addr);
   }
