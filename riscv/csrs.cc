@@ -281,7 +281,8 @@ bool pmpcfg_csr_t::unlogged_write(const reg_t val) noexcept {
 // implement class srcmd_csr_t
 srcmd_csr_t::srcmd_csr_t(processor_t* const proc, const reg_t addr):
   csr_t(proc, addr),
-  val(0) {
+  val(0),
+  srcmd_idx(address - CSR_SRCMD0){
 }
 
 reg_t srcmd_csr_t::read() const noexcept {
@@ -289,10 +290,14 @@ reg_t srcmd_csr_t::read() const noexcept {
 }
 
 bool srcmd_csr_t::unlogged_write(const reg_t val) noexcept {
-  // TODO: Check sid_num > 0 
-  
-  this->val = val;
-  return true;
+  // Check if this srcmd CSR is within the range of enabled srcmds
+  if (srcmd_idx < proc->sid_num) {
+    // If it is, write the value to the CSR
+    this->val = val;
+    return true;
+  }
+
+  return false;
 }
 
 // Verifies if the j-th MD is associated with the source ID
@@ -304,6 +309,19 @@ bool srcmd_csr_t::verify_association(const reg_t j) const noexcept {
   // Index into the md field, base of bitmap is offset by SRCMD_BITMAP_BASE 
   // Specified in section 5.6: SRCMD Table Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
   return val & (1 << (j + SRCMD_BITMAP_BASE));
+}
+
+// Gathers all associated memory domain indexes with the source ID in a vector and returns them
+std::vector<reg_t> srcmd_csr_t::associated_mds() const noexcept {
+  std::vector<reg_t> mdcfg_idxs;
+  // Iterate over each memory domain index and check if it is associated
+  // Specified in section 5.6: SRCMD Table Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+  for (reg_t i = 0; i < proc->md_num; i++) {
+    if (verify_association(i)) {
+      mdcfg_idxs.push_back(i);
+    }
+  }
+  return mdcfg_idxs;
 }
 
 // implement class mdcfg_csr_t
@@ -318,12 +336,15 @@ reg_t mdcfg_csr_t::read() const noexcept {
 }
 
 bool mdcfg_csr_t::unlogged_write(const reg_t val) noexcept {
-  // TODO: Check md_num > 0 
+  // Check if this mdcfg CSR is within the range of enabled mdcfgs
+  if (mdcfg_idx < proc->md_num) {
+    // If it is, write the value to the CSR, bits MDCFG_RSV must be zero on write
+    // Specified in section 5.5: MDCFG Table, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+    this->val = val & ~MDCFG_RSV;
+    return true;
+  }
 
-  // Bits MDCFG_RSV must be zero on write
-  // Specified in section 5.5: MDCFG Table, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
-  this->val = val & ~MDCFG_RSV;
-  return true;
+  return false;
 }
 
 // Returns the top index of the memory domain
@@ -339,15 +360,20 @@ reg_t mdcfg_csr_t::base_index() const noexcept {
   return state->mdcfg[mdcfg_idx-1]->top_index();
 }
 
-// Checks if the entry belongs to the memory domain
-bool mdcfg_csr_t::entry_belongs_to_md(reg_t entry_idx) const noexcept {
+// Gathers all entry indexes belonging to the memory domain and stores them inside entry_idxs
+void mdcfg_csr_t::entries_belonging_to_md(std::set<reg_t>* entry_idxs) const noexcept {
   reg_t mdcfg_base_index = base_index();
   reg_t mdcfg_top_index  = top_index();
 
-  // The entry belongs to the MD if the entry index is within the range: MDCFG(m-1).t ≤ entry_idx < MDCFG(m).t
-  // Specified in section 5.5: MDCFG Table, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
-  return mdcfg_base_index <= entry_idx && 
-         entry_idx < mdcfg_top_index;
+  // If the base index is not smaller than the top, then the MD is empty
+  if (mdcfg_base_index >= mdcfg_top_index)
+    return;
+
+  // Iterate over all entry indexes belonging to the memory domain
+  // Specified in section 3.1: The full model, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+  for (reg_t i = mdcfg_base_index; i < proc->entry_num && i < mdcfg_top_index; i++) {
+    (*entry_idxs).insert(i);
+  }
 }
 
 // implement class entry_addr_csr_t
@@ -363,9 +389,13 @@ reg_t entry_addr_csr_t::read() const noexcept {
 }
 
 bool entry_addr_csr_t::unlogged_write(const reg_t val) noexcept {
-  // TODO: Check entry_num > 0 || entry_idx < entry_num
-  this->val = val;
-  return true;
+  // Check if this entry_addr CSR is within the range of enabled entry_addrs
+  if (entry_idx < proc->entry_num) {
+    this->val = val;
+    return true;
+  }
+
+  return false;
 }
 
 // Returns the physical upper bound address of the entry

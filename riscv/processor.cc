@@ -444,7 +444,7 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
   // Specified in section 5.6: SRCMD Table Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
   for (int i = 0; i < max_srcmd; ++i) {
     reg_t addr = CSR_SRCMD0 + i * 32;
-    csrmap[addr] = std::make_shared<srcmd_csr_t>(proc, addr);
+    csrmap[addr] = srcmd[i] = std::make_shared<srcmd_csr_t>(proc, addr);
   }
 
   // Initialize the entry address and config csrs

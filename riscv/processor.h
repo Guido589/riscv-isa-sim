@@ -159,6 +159,7 @@ struct state_t
   static const int max_srcmd      = 16;
   static const int max_entry_addr = 16;
 
+  srcmd_csr_t_p srcmd[max_srcmd];
   mdcfg_csr_t_p mdcfg[max_mdcfg];
   entry_addr_csr_t_p entry_addr[max_entry_addr];
 

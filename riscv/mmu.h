@@ -471,6 +471,8 @@ private:
   reg_t pmp_homogeneous(reg_t addr, reg_t len);
   bool pmp_ok(reg_t addr, reg_t len, access_type type, reg_t mode);
 
+  bool iopmp_ok(reg_t sid, reg_t addr, reg_t len, access_type type);
+
 #ifdef RISCV_ENABLE_DUAL_ENDIAN
   bool target_big_endian;
 #else

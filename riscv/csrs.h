@@ -17,6 +17,7 @@
 #include <cassert>
 // For std::optional
 #include <optional>
+#include <set>
 
 class processor_t;
 struct state_t;
@@ -144,11 +145,13 @@ class srcmd_csr_t: public csr_t {
    virtual reg_t read() const noexcept override;
 
    bool verify_association(const reg_t j) const noexcept;
+   std::vector<reg_t> associated_mds() const noexcept;
 
   protected:
    virtual bool unlogged_write(const reg_t val) noexcept override;
   private:
    reg_t val;
+   const size_t srcmd_idx;
 };
 
 typedef std::shared_ptr<srcmd_csr_t> srcmd_csr_t_p;
@@ -158,7 +161,7 @@ class mdcfg_csr_t: public csr_t {
    mdcfg_csr_t(processor_t* const proc, const reg_t addr);
    virtual reg_t read() const noexcept override;
 
-   bool entry_belongs_to_md(reg_t entry_idx) const noexcept;
+   void entries_belonging_to_md(std::set<reg_t>* entry_idxs) const noexcept;
   protected:
    virtual bool unlogged_write(const reg_t val) noexcept override;
   private:

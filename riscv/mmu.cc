@@ -119,6 +119,46 @@ reg_t reg_from_bytes(size_t len, const uint8_t* bytes)
   abort();
 }
 
+// Verifies if a transaction is legal according to the IOPMP CSRs
+bool mmu_t::iopmp_ok(reg_t sid, reg_t addr, reg_t len, access_type type)
+{
+  // If the srcmd IOPMP table is empty or the sid is negative, the transaction is legal
+  if (proc->sid_num <= 0 || sid < 0)
+    return true;
+
+  // Retrieve srcmd CSR from the srcmd table
+  srcmd_csr_t_p srcmd = proc->state.srcmd[sid];
+  // Using the srcmd CSR, retrieve all associated memory domains
+  std::vector<reg_t> mdcfg_idxs = srcmd->associated_mds();
+  
+  std::set<reg_t> entry_idxs;
+  // Obtain all entries belonging to the associated memory domains
+  for (reg_t mdcfg_idx : mdcfg_idxs) {
+    // Retrieve mdcfg from the mdcfg table
+    mdcfg_csr_t_p mdcfg = proc->state.mdcfg[mdcfg_idx];
+    mdcfg->entries_belonging_to_md(&entry_idxs);
+  }
+
+  // No matching entries, the transaction is illegal
+  // Specified in section 2.6: Priority and Matching Logic, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+  bool transaction_ok = false;
+  // The entries are used to verify the legality of the transaction
+  for (reg_t entry_idx : entry_idxs) {
+    entry_addr_csr_t_p entry_addr = proc->state.entry_addr[entry_idx];
+    // All bytes of the entry must match all bytes of the transaction
+    if (entry_addr->match(addr, len)) {
+      // If this is the case, verify that the entry grants enough permisions for the transaction to be legal
+      // Specified in section 2.6: Priority and Matching Logic, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+      if (entry_addr->access_ok(type)) {
+        transaction_ok = true;
+        break;
+      }
+    }
+  }
+
+  return transaction_ok;
+}
+
 bool mmu_t::mmio_ok(reg_t paddr, access_type UNUSED type)
 {
   // Disallow access to debug region when not in debug mode
