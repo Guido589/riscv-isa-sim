@@ -327,7 +327,9 @@ std::vector<reg_t> srcmd_csr_t::associated_mds() const noexcept {
 // implement class mdcfg_csr_t
 mdcfg_csr_t::mdcfg_csr_t(processor_t* const proc, const reg_t addr):
   csr_t(proc, addr),
-  val(0),
+  // Intialize the top index value to the entry amount + 1
+  initial_top_index(proc->entry_num + 1),
+  val(initial_top_index),
   mdcfg_idx(address - CSR_MDCFG0){
 }
 
@@ -338,10 +340,22 @@ reg_t mdcfg_csr_t::read() const noexcept {
 bool mdcfg_csr_t::unlogged_write(const reg_t val) noexcept {
   // Check if this mdcfg CSR is within the range of enabled mdcfgs
   if (mdcfg_idx < proc->md_num) {
-    // If it is, write the value to the CSR, bits MDCFG_RSV must be zero on write
-    // Specified in section 5.5: MDCFG Table, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
-    this->val = val & ~MDCFG_RSV;
-    return true;
+    const reg_t top_index_value      = val & MDCFG_TOP_RANGE;
+    const reg_t base_index_value     = base_index();
+    const reg_t next_top_index_value = next_top_index();
+
+    // The top range value can not be equal to the initial value, and each entry can only be tied to one memory domain
+    // Specified in section 2.5: IOPMP Entry and IOPMP Entry Array, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+    // This is enforced by requiring the top range values of the memory domains to be monotonically increasing
+    if (top_index_value < initial_top_index &&
+        top_index_value >= base_index_value &&
+        top_index_value <= next_top_index_value) {
+
+      // Write the value to the CSR, bits MDCFG_RSV must be zero on write
+      // Specified in section 5.5: MDCFG Table, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+      this->val = val & ~MDCFG_RSV;
+      return true;
+    }
   }
 
   return false;
@@ -360,6 +374,13 @@ reg_t mdcfg_csr_t::base_index() const noexcept {
   return state->mdcfg[mdcfg_idx-1]->top_index();
 }
 
+// Returns the top index of the next memory domain
+reg_t mdcfg_csr_t::next_top_index() const noexcept {
+  // Check if it is the last memory domain, if so, the next top index is equal to the number of entries
+  if (mdcfg_idx == proc->md_num-1) return proc->entry_num;
+  return state->mdcfg[mdcfg_idx+1]->top_index();
+}
+
 // Gathers all entry indexes belonging to the memory domain and stores them inside entry_idxs
 void mdcfg_csr_t::entries_belonging_to_md(std::set<reg_t>* entry_idxs) const noexcept {
   reg_t mdcfg_base_index = base_index();
@@ -369,10 +390,13 @@ void mdcfg_csr_t::entries_belonging_to_md(std::set<reg_t>* entry_idxs) const noe
   if (mdcfg_base_index >= mdcfg_top_index)
     return;
 
-  // Iterate over all entry indexes belonging to the memory domain
+  // Iterate over all entry indexes belonging to the memory domain, MDCFG(m-1).t ≤ j < MDCFG(m).t
+  // Top index value can not be equal to the initial value
   // Specified in section 3.1: The full model, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
-  for (reg_t i = mdcfg_base_index; i < proc->entry_num && i < mdcfg_top_index; i++) {
-    (*entry_idxs).insert(i);
+  if (mdcfg_top_index != initial_top_index) {
+    for (reg_t i = mdcfg_base_index; i < mdcfg_top_index && i < proc->entry_num; i++) {
+      (*entry_idxs).insert(i);
+    }
   }
 }
 

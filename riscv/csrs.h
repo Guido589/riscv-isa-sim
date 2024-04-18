@@ -169,7 +169,10 @@ class mdcfg_csr_t: public csr_t {
 
    reg_t base_index() const noexcept;
 
+   reg_t next_top_index() const noexcept;
+
    reg_t val;
+   reg_t initial_top_index;
    const size_t mdcfg_idx;
 };
 

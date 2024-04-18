@@ -122,8 +122,8 @@ reg_t reg_from_bytes(size_t len, const uint8_t* bytes)
 // Verifies if a transaction is legal according to the IOPMP CSRs
 bool mmu_t::iopmp_ok(reg_t sid, reg_t addr, reg_t len, access_type type)
 {
-  // If the srcmd IOPMP table is empty or the sid is negative, the transaction is legal
-  if (proc->sid_num <= 0 || sid < 0)
+  // If the srcmd IOPMP table is empty, the sid is negative or the srcmd csr it not enabled, the transaction is legal
+  if (proc->sid_num <= 0 || sid < 0 || sid >= proc->sid_num)
     return true;
 
   // Retrieve srcmd CSR from the srcmd table
