@@ -46,8 +46,6 @@ jobs:
       - name: Download Tests
         run: |
           git clone --recurse-submodules https://github.com/Guido589/riscv-tests.git
-          cd riscv-tests
-          git checkout bd0a19c136927eaa3b7296a591a896c141affb6b
 
       - name: Run Tests
         run: |
