@@ -145,6 +145,7 @@ class srcmd_csr_t: public csr_t {
    virtual reg_t read() const noexcept override;
 
    bool verify_association(const reg_t j) const noexcept;
+
    std::vector<reg_t> associated_mds() const noexcept;
 
   protected:
@@ -161,7 +162,7 @@ class mdcfg_csr_t: public csr_t {
    mdcfg_csr_t(processor_t* const proc, const reg_t addr);
    virtual reg_t read() const noexcept override;
 
-   void entries_belonging_to_md(std::set<reg_t>* entry_idxs) const noexcept;
+   void entries_belonging_to_md(std::vector<reg_t>* entry_idxs) const noexcept;
   protected:
    virtual bool unlogged_write(const reg_t val) noexcept override;
   private:
@@ -209,6 +210,7 @@ class entry_cfg_csr_t: public csr_t {
   virtual bool unlogged_write(const reg_t val) noexcept override;
  private:
   reg_t val;
+  const size_t entry_idx;
 };
 
 typedef std::shared_ptr<entry_cfg_csr_t> entry_cfg_csr_t_p;

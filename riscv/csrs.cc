@@ -382,7 +382,7 @@ reg_t mdcfg_csr_t::next_top_index() const noexcept {
 }
 
 // Gathers all entry indexes belonging to the memory domain and stores them inside entry_idxs
-void mdcfg_csr_t::entries_belonging_to_md(std::set<reg_t>* entry_idxs) const noexcept {
+void mdcfg_csr_t::entries_belonging_to_md(std::vector<reg_t>* entry_idxs) const noexcept {
   reg_t mdcfg_base_index = base_index();
   reg_t mdcfg_top_index  = top_index();
 
@@ -395,7 +395,7 @@ void mdcfg_csr_t::entries_belonging_to_md(std::set<reg_t>* entry_idxs) const noe
   // Specified in section 3.1: The full model, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
   if (mdcfg_top_index != initial_top_index) {
     for (reg_t i = mdcfg_base_index; i < mdcfg_top_index && i < proc->entry_num; i++) {
-      (*entry_idxs).insert(i);
+      (*entry_idxs).push_back(i);
     }
   }
 }
@@ -489,7 +489,8 @@ bool entry_addr_csr_t::access_ok(access_type type) const noexcept {
 // implement class entry_cfg_csr_t
 entry_cfg_csr_t::entry_cfg_csr_t(processor_t* const proc, const reg_t addr):
   csr_t(proc, addr), 
-  val(0) {
+  val(0),
+  entry_idx(address - CSR_ENTRY_CFG0){
 }
 
 reg_t entry_cfg_csr_t::read() const noexcept {
@@ -497,12 +498,15 @@ reg_t entry_cfg_csr_t::read() const noexcept {
 }
 
 bool entry_cfg_csr_t::unlogged_write(const reg_t val) noexcept {
-  // TODO: Check entry_num > 0
+  // Check if this entry_cfg CSR is within the range of enabled entry_cfgs
+  if (entry_idx < proc->entry_num) {
+    // Bits ENTRY_CFG_RSV must be zero on write
+    // Specified in section 5.7: Entry Array Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+    this->val = val & ~ENTRY_CFG_RSV;
+    return true;
+  }
 
-  // Bits ENTRY_CFG_RSV must be zero on write
-  // Specified in section 5.7: Entry Array Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
-  this->val = val & ~ENTRY_CFG_RSV;
-  return true;
+  return false;
 }
 
 // implement class mseccfg_csr_t

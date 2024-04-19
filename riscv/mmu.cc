@@ -122,8 +122,8 @@ reg_t reg_from_bytes(size_t len, const uint8_t* bytes)
 // Verifies if a transaction is legal according to the IOPMP CSRs
 bool mmu_t::iopmp_ok(reg_t sid, reg_t addr, reg_t len, access_type type)
 {
-  // If the srcmd IOPMP table is empty, the sid is negative or the srcmd csr it not enabled, the transaction is legal
-  if (proc->sid_num <= 0 || sid < 0 || sid >= proc->sid_num)
+  // If the srcmd IOPMP table is empty, the sid is the UINT64_MAX or the srcmd csr it not enabled, the transaction is legal
+  if (proc->sid_num <= 0 || sid == UINT64_MAX || sid >= proc->sid_num)
     return true;
 
   // Retrieve srcmd CSR from the srcmd table
@@ -131,7 +131,7 @@ bool mmu_t::iopmp_ok(reg_t sid, reg_t addr, reg_t len, access_type type)
   // Using the srcmd CSR, retrieve all associated memory domains
   std::vector<reg_t> mdcfg_idxs = srcmd->associated_mds();
   
-  std::set<reg_t> entry_idxs;
+  std::vector<reg_t> entry_idxs;
   // Obtain all entries belonging to the associated memory domains
   for (reg_t mdcfg_idx : mdcfg_idxs) {
     // Retrieve mdcfg from the mdcfg table
@@ -176,12 +176,12 @@ bool mmu_t::mmio_fetch(reg_t paddr, size_t len, uint8_t* bytes)
   return sim->mmio_fetch(paddr, len, bytes);
 }
 
-bool mmu_t::mmio_load(reg_t paddr, size_t len, uint8_t* bytes)
+bool mmu_t::mmio_load(reg_t paddr, size_t len, uint8_t* bytes, reg_t sid)
 {
   return mmio(paddr, len, bytes, LOAD);
 }
 
-bool mmu_t::mmio_store(reg_t paddr, size_t len, const uint8_t* bytes)
+bool mmu_t::mmio_store(reg_t paddr, size_t len, const uint8_t* bytes, reg_t sid)
 {
   return mmio(paddr, len, const_cast<uint8_t*>(bytes), STORE);
 }
@@ -229,7 +229,7 @@ void mmu_t::check_triggers(triggers::operation_t operation, reg_t address, bool 
     }
 }
 
-void mmu_t::load_slow_path_intrapage(reg_t len, uint8_t* bytes, mem_access_info_t access_info)
+void mmu_t::load_slow_path_intrapage(reg_t len, uint8_t* bytes, mem_access_info_t access_info, reg_t sid)
 {
   reg_t addr = access_info.vaddr;
   reg_t vpn = addr >> PGSHIFT;
@@ -252,7 +252,7 @@ void mmu_t::load_slow_path_intrapage(reg_t len, uint8_t* bytes, mem_access_info_
     else if (!access_info.flags.is_special_access())
       refill_tlb(addr, paddr, host_addr, LOAD);
 
-  } else if (!mmio_load(paddr, len, bytes)) {
+  } else if (!mmio_load(paddr, len, bytes, sid)) {
     throw trap_load_access_fault(access_info.effective_virt, addr, 0, 0);
   }
 
@@ -261,13 +261,13 @@ void mmu_t::load_slow_path_intrapage(reg_t len, uint8_t* bytes, mem_access_info_
   }
 }
 
-void mmu_t::load_slow_path(reg_t addr, reg_t len, uint8_t* bytes, xlate_flags_t xlate_flags)
+void mmu_t::load_slow_path(reg_t addr, reg_t len, uint8_t* bytes, xlate_flags_t xlate_flags, reg_t sid)
 {
   auto access_info = generate_access_info(addr, LOAD, xlate_flags);
   check_triggers(triggers::OPERATION_LOAD, addr, access_info.effective_virt);
 
   if ((addr & (len - 1)) == 0) {
-    load_slow_path_intrapage(len, bytes, access_info);
+    load_slow_path_intrapage(len, bytes, access_info, sid);
   } else {
     bool gva = access_info.effective_virt;
     if (!is_misaligned_enabled())
@@ -277,9 +277,9 @@ void mmu_t::load_slow_path(reg_t addr, reg_t len, uint8_t* bytes, xlate_flags_t 
       throw trap_load_access_fault(gva, addr, 0, 0);
 
     reg_t len_page0 = std::min(len, PGSIZE - addr % PGSIZE);
-    load_slow_path_intrapage(len_page0, bytes, access_info);
+    load_slow_path_intrapage(len_page0, bytes, access_info, sid);
     if (len_page0 != len)
-      load_slow_path_intrapage(len - len_page0, bytes + len_page0, access_info.split_misaligned_access(len_page0));
+      load_slow_path_intrapage(len - len_page0, bytes + len_page0, access_info.split_misaligned_access(len_page0), sid);
   }
 
   while (len > sizeof(reg_t)) {
@@ -290,7 +290,7 @@ void mmu_t::load_slow_path(reg_t addr, reg_t len, uint8_t* bytes, xlate_flags_t 
   check_triggers(triggers::OPERATION_LOAD, addr, access_info.effective_virt, reg_from_bytes(len, bytes));
 }
 
-void mmu_t::store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_access_info_t access_info, bool actually_store)
+void mmu_t::store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_access_info_t access_info, bool actually_store, reg_t sid)
 {
   reg_t addr = access_info.vaddr;
   reg_t vpn = addr >> PGSHIFT;
@@ -311,13 +311,13 @@ void mmu_t::store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_acces
         tracer.trace(paddr, len, STORE);
       else if (!access_info.flags.is_special_access())
         refill_tlb(addr, paddr, host_addr, STORE);
-    } else if (!mmio_store(paddr, len, bytes)) {
+    } else if (!mmio_store(paddr, len, bytes, sid)) {
       throw trap_store_access_fault(access_info.effective_virt, addr, 0, 0);
     }
   }
 }
 
-void mmu_t::store_slow_path(reg_t addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool UNUSED require_alignment)
+void mmu_t::store_slow_path(reg_t addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool UNUSED require_alignment, reg_t sid)
 {
   auto access_info = generate_access_info(addr, STORE, xlate_flags);
   if (actually_store) {
@@ -340,11 +340,11 @@ void mmu_t::store_slow_path(reg_t addr, reg_t len, const uint8_t* bytes, xlate_f
       throw trap_store_access_fault(gva, addr, 0, 0);
 
     reg_t len_page0 = std::min(len, PGSIZE - addr % PGSIZE);
-    store_slow_path_intrapage(len_page0, bytes, access_info, actually_store);
+    store_slow_path_intrapage(len_page0, bytes, access_info, actually_store, sid);
     if (len_page0 != len)
-      store_slow_path_intrapage(len - len_page0, bytes + len_page0, access_info.split_misaligned_access(len_page0), actually_store);
+      store_slow_path_intrapage(len - len_page0, bytes + len_page0, access_info.split_misaligned_access(len_page0), actually_store, sid);
   } else {
-    store_slow_path_intrapage(len, bytes, access_info, actually_store);
+    store_slow_path_intrapage(len, bytes, access_info, actually_store, sid);
   }
 }
 

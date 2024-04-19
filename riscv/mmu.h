@@ -94,7 +94,7 @@ public:
   ~mmu_t();
 
   template<typename T>
-  T ALWAYS_INLINE load(reg_t addr, xlate_flags_t xlate_flags = {}) {
+  T ALWAYS_INLINE load(reg_t addr, xlate_flags_t xlate_flags = {}, reg_t sid = UINT64_MAX) {
     target_endian<T> res;
     reg_t vpn = addr >> PGSHIFT;
     bool aligned = (addr & (sizeof(T) - 1)) == 0;
@@ -103,7 +103,7 @@ public:
     if (likely(!xlate_flags.is_special_access() && aligned && tlb_hit)) {
       res = *(target_endian<T>*)(tlb_data[vpn % TLB_ENTRIES].host_offset + addr);
     } else {
-      load_slow_path(addr, sizeof(T), (uint8_t*)&res, xlate_flags);
+      load_slow_path(addr, sizeof(T), (uint8_t*)&res, xlate_flags, sid);
     }
 
     if (unlikely(proc && proc->get_log_commits_enabled()))
@@ -128,7 +128,7 @@ public:
   }
 
   template<typename T>
-  void ALWAYS_INLINE store(reg_t addr, T val, xlate_flags_t xlate_flags = {}) {
+  void ALWAYS_INLINE store(reg_t addr, T val, xlate_flags_t xlate_flags = {}, reg_t sid = UINT64_MAX) {
     reg_t vpn = addr >> PGSHIFT;
     bool aligned = (addr & (sizeof(T) - 1)) == 0;
     bool tlb_hit = tlb_store_tag[vpn % TLB_ENTRIES] == vpn;
@@ -137,7 +137,7 @@ public:
       *(target_endian<T>*)(tlb_data[vpn % TLB_ENTRIES].host_offset + addr) = to_target(val);
     } else {
       target_endian<T> target_val = to_target(val);
-      store_slow_path(addr, sizeof(T), (const uint8_t*)&target_val, xlate_flags, true, false);
+      store_slow_path(addr, sizeof(T), (const uint8_t*)&target_val, xlate_flags, true, false, sid);
     }
 
     if (unlikely(proc && proc->get_log_commits_enabled()))
@@ -386,13 +386,13 @@ private:
 
   // handle uncommon cases: TLB misses, page faults, MMIO
   tlb_entry_t fetch_slow_path(reg_t addr);
-  void load_slow_path(reg_t addr, reg_t len, uint8_t* bytes, xlate_flags_t xlate_flags);
-  void load_slow_path_intrapage(reg_t len, uint8_t* bytes, mem_access_info_t access_info);
-  void store_slow_path(reg_t addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool require_alignment);
-  void store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_access_info_t access_info, bool actually_store);
+  void load_slow_path(reg_t addr, reg_t len, uint8_t* bytes, xlate_flags_t xlate_flags, reg_t sid);
+  void load_slow_path_intrapage(reg_t len, uint8_t* bytes, mem_access_info_t access_info, reg_t sid);
+  void store_slow_path(reg_t addr, reg_t len, const uint8_t* bytes, xlate_flags_t xlate_flags, bool actually_store, bool require_alignment, reg_t sid = UINT64_MAX);
+  void store_slow_path_intrapage(reg_t len, const uint8_t* bytes, mem_access_info_t access_info, bool actually_store, reg_t sid);
   bool mmio_fetch(reg_t paddr, size_t len, uint8_t* bytes);
-  bool mmio_load(reg_t paddr, size_t len, uint8_t* bytes);
-  bool mmio_store(reg_t paddr, size_t len, const uint8_t* bytes);
+  bool mmio_load(reg_t paddr, size_t len, uint8_t* bytes, reg_t sid = UINT64_MAX);
+  bool mmio_store(reg_t paddr, size_t len, const uint8_t* bytes, reg_t sid = UINT64_MAX);
   bool mmio(reg_t paddr, size_t len, uint8_t* bytes, access_type type);
   bool mmio_ok(reg_t paddr, access_type type);
   void check_triggers(triggers::operation_t operation, reg_t address, bool virt, std::optional<reg_t> data = std::nullopt) {

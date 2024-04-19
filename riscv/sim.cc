@@ -166,6 +166,8 @@ sim_t::sim_t(const cfg_t *cfg, bool halted,
     abstract_device_t* device = factory->parse_from_fdt(fdt, this, &device_base);
     if (device) {
       assert(device_base);
+      // Initialize the source ID of the device
+      device->sid = i;
       std::shared_ptr<abstract_device_t> dev_ptr(device);
       add_device(device_base, dev_ptr);
 
