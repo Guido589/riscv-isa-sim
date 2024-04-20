@@ -393,7 +393,7 @@ private:
   bool mmio_fetch(reg_t paddr, size_t len, uint8_t* bytes);
   bool mmio_load(reg_t paddr, size_t len, uint8_t* bytes, reg_t sid = UINT64_MAX);
   bool mmio_store(reg_t paddr, size_t len, const uint8_t* bytes, reg_t sid = UINT64_MAX);
-  bool mmio(reg_t paddr, size_t len, uint8_t* bytes, access_type type);
+  bool mmio(reg_t paddr, size_t len, uint8_t* bytes, access_type type, reg_t sid);
   bool mmio_ok(reg_t paddr, access_type type);
   void check_triggers(triggers::operation_t operation, reg_t address, bool virt, std::optional<reg_t> data = std::nullopt) {
     check_triggers(operation, address, virt, address, data);

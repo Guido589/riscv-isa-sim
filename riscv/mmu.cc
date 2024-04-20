@@ -178,18 +178,21 @@ bool mmu_t::mmio_fetch(reg_t paddr, size_t len, uint8_t* bytes)
 
 bool mmu_t::mmio_load(reg_t paddr, size_t len, uint8_t* bytes, reg_t sid)
 {
-  return mmio(paddr, len, bytes, LOAD);
+  return mmio(paddr, len, bytes, LOAD, sid);
 }
 
 bool mmu_t::mmio_store(reg_t paddr, size_t len, const uint8_t* bytes, reg_t sid)
 {
-  return mmio(paddr, len, const_cast<uint8_t*>(bytes), STORE);
+  return mmio(paddr, len, const_cast<uint8_t*>(bytes), STORE, sid);
 }
 
-bool mmu_t::mmio(reg_t paddr, size_t len, uint8_t* bytes, access_type type)
+bool mmu_t::mmio(reg_t paddr, size_t len, uint8_t* bytes, access_type type, reg_t sid)
 {
   bool power_of_2 = (len & (len - 1)) == 0;
   bool naturally_aligned = (paddr & (len - 1)) == 0;
+
+  if (!iopmp_ok(sid, paddr, len, type))
+    return false;
 
   if (power_of_2 && naturally_aligned) {
     if (!mmio_ok(paddr, type))
@@ -202,7 +205,7 @@ bool mmu_t::mmio(reg_t paddr, size_t len, uint8_t* bytes, access_type type)
   }
 
   for (size_t i = 0; i < len; i++) {
-    if (!mmio(paddr + i, 1, bytes + i, type))
+    if (!mmio(paddr + i, 1, bytes + i, type, sid))
       return false;
   }
 
