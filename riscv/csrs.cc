@@ -405,7 +405,7 @@ entry_addr_csr_t::entry_addr_csr_t(processor_t* const proc, const reg_t addr, cs
   csr_t(proc, addr),
   val(0),
   cfg(cfg),
-  entry_idx(address - CSR_ENTRY_ADDR0){
+  entry_idx(address - CSR_ENTRYADDR0){
 }
 
 reg_t entry_addr_csr_t::read() const noexcept {
@@ -490,7 +490,7 @@ bool entry_addr_csr_t::access_ok(access_type type) const noexcept {
 entry_cfg_csr_t::entry_cfg_csr_t(processor_t* const proc, const reg_t addr):
   csr_t(proc, addr), 
   val(0),
-  entry_idx(address - CSR_ENTRY_CFG0){
+  entry_idx(address - CSR_ENTRYCFG0){
 }
 
 reg_t entry_cfg_csr_t::read() const noexcept {

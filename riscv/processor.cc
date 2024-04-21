@@ -448,8 +448,8 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
   // Specified in section 5.7: Entry Array Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
   for (int i = 0; i < max_entry_addr; ++i) {
     csr_t_p cfg;
-    reg_t addr_cfg = CSR_ENTRY_CFG0 + i * 16;
-    reg_t addr     = CSR_ENTRY_ADDR0 + i * 16;
+    reg_t addr_cfg = CSR_ENTRYCFG0 + i * 16;
+    reg_t addr     = CSR_ENTRYADDR0 + i * 16;
     csrmap[addr_cfg] = cfg = std::make_shared<entry_cfg_csr_t>(proc, addr_cfg);
     csrmap[addr] = entry_addr[i] = std::make_shared<entry_addr_csr_t>(proc, addr, cfg);
   }
