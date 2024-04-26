@@ -90,7 +90,7 @@ private:
   }
 
 public:
-  mmu_t(simif_t* sim, endianness_t endianness, processor_t* proc);
+  mmu_t(simif_t* sim, endianness_t endianness, processor_t* proc, processor_t* iopmp_proc);
   ~mmu_t();
 
   template<typename T>
@@ -356,6 +356,7 @@ public:
 private:
   simif_t* sim;
   processor_t* proc;
+  processor_t* iopmp_proc;
   memtracer_list_t tracer;
   reg_t load_reservation_address;
   uint16_t fetch_temp;

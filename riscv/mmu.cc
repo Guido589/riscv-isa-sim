@@ -6,8 +6,8 @@
 #include "simif.h"
 #include "processor.h"
 
-mmu_t::mmu_t(simif_t* sim, endianness_t endianness, processor_t* proc)
- : sim(sim), proc(proc),
+mmu_t::mmu_t(simif_t* sim, endianness_t endianness, processor_t* proc, processor_t* iopmp_proc)
+ : sim(sim), proc(proc), iopmp_proc(iopmp_proc),
 #ifdef RISCV_ENABLE_DUAL_ENDIAN
   target_big_endian(endianness == endianness_big),
 #endif
@@ -123,11 +123,11 @@ reg_t reg_from_bytes(size_t len, const uint8_t* bytes)
 bool mmu_t::iopmp_ok(reg_t sid, reg_t addr, reg_t len, access_type type)
 {
   // If the srcmd IOPMP table is empty, the sid is the UINT64_MAX or the srcmd csr it not enabled, the transaction is legal
-  if (proc->sid_num <= 0 || sid == UINT64_MAX || sid >= proc->sid_num)
+  if (!iopmp_proc || iopmp_proc->sid_num <= 0 || sid == UINT64_MAX || sid >= iopmp_proc->sid_num)
     return true;
 
   // Retrieve srcmd CSR from the srcmd table
-  srcmd_csr_t_p srcmd = proc->state.srcmd[sid];
+  srcmd_csr_t_p srcmd = iopmp_proc->state.srcmd[sid];
   // Using the srcmd CSR, retrieve all associated memory domains
   std::vector<reg_t> mdcfg_idxs = srcmd->associated_mds();
   
@@ -135,7 +135,7 @@ bool mmu_t::iopmp_ok(reg_t sid, reg_t addr, reg_t len, access_type type)
   // Obtain all entries belonging to the associated memory domains
   for (reg_t mdcfg_idx : mdcfg_idxs) {
     // Retrieve mdcfg from the mdcfg table
-    mdcfg_csr_t_p mdcfg = proc->state.mdcfg[mdcfg_idx];
+    mdcfg_csr_t_p mdcfg = iopmp_proc->state.mdcfg[mdcfg_idx];
     mdcfg->entries_belonging_to_md(&entry_idxs);
   }
 
@@ -144,7 +144,7 @@ bool mmu_t::iopmp_ok(reg_t sid, reg_t addr, reg_t len, access_type type)
   bool transaction_ok = false;
   // The entries are used to verify the legality of the transaction
   for (reg_t entry_idx : entry_idxs) {
-    entry_addr_csr_t_p entry_addr = proc->state.entry_addr[entry_idx];
+    entry_addr_csr_t_p entry_addr = iopmp_proc->state.entry_addr[entry_idx];
     // All bytes of the entry must match all bytes of the transaction
     if (entry_addr->match(addr, len)) {
       // If this is the case, verify that the entry grants enough permisions for the transaction to be legal

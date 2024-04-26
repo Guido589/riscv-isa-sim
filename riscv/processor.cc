@@ -57,7 +57,7 @@ processor_t::processor_t(const isa_parser_t *isa, const cfg_t *cfg,
   parse_varch_string(cfg->varch);
 
   register_base_instructions();
-  mmu = new mmu_t(sim, cfg->endianness, this);
+  mmu = new mmu_t(sim, cfg->endianness, this, NULL);
 
   disassembler = new disassembler_t(isa);
   for (auto e : isa->get_extensions())
