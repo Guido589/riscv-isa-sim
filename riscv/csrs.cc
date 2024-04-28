@@ -456,7 +456,7 @@ bool entry_addr_csr_t::match(reg_t addr, reg_t len) const noexcept {
     reg_t tor_base_addr         = tor_base_paddr();
     reg_t tor_top_addr          = tor_paddr();
     reg_t transaction_base_addr = addr;
-    reg_t transaction_top_addr  = addr + len;
+    reg_t transaction_top_addr  = addr + len - 1;
     // The entry matches any address in the range: entry_addr(i−1) ≤ a < entry_addr(i)
     // Specified in section 3.6.1 Physical Memory Protection CSRs, of the RISC-V Instruction Set Manual (Volume II)
     matches = tor_base_addr <= transaction_base_addr && 
