@@ -292,8 +292,11 @@ reg_t srcmd_csr_t::read() const noexcept {
 bool srcmd_csr_t::unlogged_write(const reg_t val) noexcept {
   // Check if this srcmd CSR is within the range of enabled srcmds
   if (srcmd_idx < proc->sid_num) {
+    // Clear bits of disabled memory domains
+    // Specified in section 3.1: The Full Model, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+    reg_t mask = (1 << (proc->md_num + SRCMD_BITMAP_BASE)) - 1;
     // If it is, write the value to the CSR
-    this->val = val;
+    this->val = val & mask;
     return true;
   }
 
