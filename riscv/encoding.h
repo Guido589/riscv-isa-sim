@@ -307,16 +307,17 @@
 #define PMP_NA4   0x10
 #define PMP_NAPOT 0x18
 
+#define SRCMD_ADDR_OFFSET 32
 #define SRCMD_EN_MAX_IDX 30
 #define SRCMD_ENH_MAX_IDX 31
-
 #define SRCMD_BITMAP_BASE 1
 
+#define MDCFG_ADDR_OFFSET 4
 #define MDCFG_TOP_RANGE 0xFFFF
 #define MDCFG_RSV       0xFFFFFFFFFFFF0000
 
+#define ENTRY_OFFSET 16
 #define ENTRY_ADDR_SHIFT 2
-
 #define ENTRY_CFG_R     0x01
 #define ENTRY_CFG_W     0x02
 #define ENTRY_CFG_X     0x04

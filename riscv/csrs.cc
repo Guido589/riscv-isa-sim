@@ -282,7 +282,7 @@ bool pmpcfg_csr_t::unlogged_write(const reg_t val) noexcept {
 srcmd_csr_t::srcmd_csr_t(processor_t* const proc, const reg_t addr):
   csr_t(proc, addr),
   val(0),
-  srcmd_idx(address - CSR_SRCMD0){
+  srcmd_idx((address - CSR_SRCMD0) / SRCMD_ADDR_OFFSET){
 }
 
 reg_t srcmd_csr_t::read() const noexcept {
@@ -294,7 +294,8 @@ bool srcmd_csr_t::unlogged_write(const reg_t val) noexcept {
   if (srcmd_idx < proc->sid_num) {
     // Clear bits of disabled memory domains
     // Specified in section 3.1: The Full Model, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
-    reg_t mask = (1 << (proc->md_num + SRCMD_BITMAP_BASE)) - 1;
+    volatile int shift_amount = proc->md_num + SRCMD_BITMAP_BASE;
+    reg_t mask = (static_cast<reg_t>(1) << (shift_amount - 1) << 1) - 1;
     // If it is, write the value to the CSR
     this->val = val & mask;
     return true;
@@ -311,7 +312,7 @@ bool srcmd_csr_t::verify_association(const reg_t j) const noexcept {
 
   // Index into the md field, base of bitmap is offset by SRCMD_BITMAP_BASE 
   // Specified in section 5.6: SRCMD Table Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
-  return val & (1 << (j + SRCMD_BITMAP_BASE));
+  return val & (static_cast<reg_t>(1) << (j + SRCMD_BITMAP_BASE));
 }
 
 // Gathers all associated memory domain indexes with the source ID in a vector and returns them
@@ -333,7 +334,7 @@ mdcfg_csr_t::mdcfg_csr_t(processor_t* const proc, const reg_t addr):
   // Intialize the top index value to the entry amount + 1
   initial_top_index(proc->entry_num + 1),
   val(initial_top_index),
-  mdcfg_idx(address - CSR_MDCFG0){
+  mdcfg_idx((address - CSR_MDCFG0) / MDCFG_ADDR_OFFSET){
 }
 
 reg_t mdcfg_csr_t::read() const noexcept {
@@ -408,7 +409,7 @@ entry_addr_csr_t::entry_addr_csr_t(processor_t* const proc, const reg_t addr, cs
   csr_t(proc, addr),
   val(0),
   cfg(cfg),
-  entry_idx(address - CSR_ENTRY_ADDR0){
+  entry_idx((address - CSR_ENTRY_ADDR0) / ENTRY_OFFSET){
 }
 
 reg_t entry_addr_csr_t::read() const noexcept {
@@ -493,7 +494,7 @@ bool entry_addr_csr_t::access_ok(access_type type) const noexcept {
 entry_cfg_csr_t::entry_cfg_csr_t(processor_t* const proc, const reg_t addr):
   csr_t(proc, addr), 
   val(0),
-  entry_idx(address - CSR_ENTRY_CFG0){
+  entry_idx((address - CSR_ENTRY_CFG0) / ENTRY_OFFSET){
 }
 
 reg_t entry_cfg_csr_t::read() const noexcept {

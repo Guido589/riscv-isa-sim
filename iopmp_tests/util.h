@@ -11,6 +11,18 @@
 #define ALL_MD_ASSOCIATED 0xFFFFFFFFFFFFFFFE
 #define ALL_ONE_BITS      0xFFFFFFFFFFFFFFFF
 
+extern int passed_tests;
+extern int failed_tests;
+
+#define ASSERT(message, condition) \
+    if (!(condition)) { \
+        std::cerr << "spike: " << __FILE__ << ":" << __LINE__ << ": " << __func__ << ": " << message << std::endl; \
+        std::cerr << "Assertion failed: " << #condition << std::endl; \
+        failed_tests++; \
+    } else { \
+        passed_tests++; \
+    } \
+
 cfg_t* create_cfg();
 processor_t* create_processor();
 mmu_t* create_mmu(processor_t* proc);
@@ -20,3 +32,4 @@ entry_addr_csr_t_p get_entry_addr(processor_t* proc, int entry_addr_idx);
 void store_paddr(entry_addr_csr_t_p entry_addr, reg_t paddr);
 void write_entry_cfg(processor_t* proc, int entry_cfg_idx, reg_t val);
 reg_t read_entry_cfg(processor_t* proc, int entry_cfg_idx);
+void end_test();

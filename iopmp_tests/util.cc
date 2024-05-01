@@ -1,9 +1,8 @@
-#include "cfg.h"
-#include "csrs.h"
-#include "processor.h"
-#include "encoding.h"
-#include "mmu.h"
+
 #include "util.h"
+
+int failed_tests = 0;
+int passed_tests = 0;
 
 cfg_t* create_cfg() {
     cfg_t* cfg = new cfg_t();
@@ -17,7 +16,7 @@ processor_t* create_processor() {
     cfg->sourceids     = SID;
     cfg->entrynum      = ENTRY;
     //Create dummy values for the other parameters
-    isa_parser_t isa = isa_parser_t("", NULL);
+    isa_parser_t isa = isa_parser_t(DEFAULT_ISA, DEFAULT_PRIV);
     simif_t* sim = nullptr;
     uint32_t id = 0;
     bool halt_on_reset = false;
@@ -31,7 +30,7 @@ processor_t* create_processor() {
 mmu_t* create_mmu(processor_t* proc) {
     simif_t* sim = nullptr;
     cfg_t* cfg   = create_cfg();
-    mmu_t* mmu   = new mmu_t(sim, cfg->endianness, proc, NULL);
+    mmu_t* mmu   = new mmu_t(sim, cfg->endianness, NULL, proc);
     return mmu;
 }
 
@@ -57,4 +56,12 @@ void write_entry_cfg(processor_t* proc, int entry_cfg_idx, reg_t val) {
 
 reg_t read_entry_cfg(processor_t* proc, int entry_cfg_idx) {
     return proc->get_csr(CSR_ENTRY_CFG0 + entry_cfg_idx * 16);
+}
+
+void end_test() {
+    std::cout << "Tests passed: " << passed_tests << std::endl;
+    std::cout << "Tests failed: " << failed_tests << std::endl;
+    std::cout << std::endl;
+    passed_tests = 0;
+    failed_tests = 0;
 }

@@ -22,10 +22,10 @@ void test_iopmp_ok() {
     //Entry 0 has a physical top address of 0xC (matching [0, 12))
     store_paddr(entry_addr0, 0xC);
 
-    assert(("When the first srcmd, mdcfg and entry addr are linked, and the entry addr and configuration match the transaction, the transaction is legal",  mmu->iopmp_ok(sid, 0, 12, LOAD)));
-    assert(("When the first srcmd, mdcfg and entry addr are linked, and the configuration does not match the transaction, the transaction is illegal",     !mmu->iopmp_ok(sid, 0, 12, STORE)));
-    assert(("When the first srcmd, mdcfg and entry addr are linked, and the entry addr (TOR) does not match the transaction, the transaction is illegal",  !mmu->iopmp_ok(sid, 0, 13, LOAD)));
-    assert(("When the sid is equal to the maximum value for uint64_t and the transaction is illegal according to the iopmp csrs, the transaction is legal", mmu->iopmp_ok(UINT64_MAX, 0, 13, LOAD)));
+    ASSERT("When the first srcmd, mdcfg and entry addr are linked, and the entry addr and configuration match the transaction, the transaction is legal",  mmu->iopmp_ok(sid, 0, 12, LOAD));
+    ASSERT("When the first srcmd, mdcfg and entry addr are linked, and the configuration does not match the transaction, the transaction is illegal",     !mmu->iopmp_ok(sid, 0, 12, STORE));
+    ASSERT("When the first srcmd, mdcfg and entry addr are linked, and the entry addr (TOR) does not match the transaction, the transaction is illegal",  !mmu->iopmp_ok(sid, 0, 13, LOAD));
+    ASSERT("When the sid is equal to the maximum value for uint64_t and the transaction is illegal according to the iopmp csrs, the transaction is legal", mmu->iopmp_ok(UINT64_MAX, 0, 13, LOAD));
 }
 
 void test_iopmp_ok_source_linked_with_no_md() {
@@ -46,7 +46,7 @@ void test_iopmp_ok_source_linked_with_no_md() {
     //Entry 0 has a physical top address of 0xC (matching [0, 12))
     store_paddr(entry_addr0, 0xC);
 
-    assert(("When the first source is linked with no memory domain, the transaction is illegal", !mmu->iopmp_ok(sid, 0, 12, LOAD)));
+    ASSERT("When the first source is linked with no memory domain, the transaction is illegal", !mmu->iopmp_ok(sid, 0, 12, LOAD));
 }
 
 void test_iopmp_ok_md_linked_with_no_entry() {
@@ -67,7 +67,7 @@ void test_iopmp_ok_md_linked_with_no_entry() {
     //Entry 0 has a physical top address of 0xC (matching [0, 12))
     store_paddr(entry_addr0, 0xC);
 
-    assert(("When the first memory domain is linked with no entry, the transaction is illegal", !mmu->iopmp_ok(sid, 0, 12, LOAD)));
+    ASSERT("When the first memory domain is linked with no entry, the transaction is illegal", !mmu->iopmp_ok(sid, 0, 12, LOAD));
 }
 
 void test_iopmp_ok_two_entries_match() {
@@ -83,8 +83,8 @@ void test_iopmp_ok_two_entries_match() {
     reg_t sid = 0;
     //Associate source id 0 with memory domain 0
     srcmd0->write(1 << SRCMD_BITMAP_BASE);
-    //Memory domain 0 owns entry 0,1
-    mdcfg0->write(2);
+    //Memory domain 0 owns entry 0,1,2
+    mdcfg0->write(7);
     //Entry 0 configured as TOR and read only
     write_entry_cfg(proc, 0, ENTRY_CFG_TOR | ENTRY_CFG_R);
     //Entry 0 has a physical top address of 0xC (matching [0, 12))
@@ -98,11 +98,19 @@ void test_iopmp_ok_two_entries_match() {
     //Entry 2 has a physical top address of 0xC (matching [0, 12))
     store_paddr(entry_addr2, 0xC);
 
-    assert(("When the two entries match the same address range and the transaction is legal according to the first entry, the transaction is legal",  mmu->iopmp_ok(sid, 0, 12, LOAD)));
-    assert(("When the two entries match the same address range and the transaction is legal according to the second entry, the transaction is legal", mmu->iopmp_ok(sid, 0, 12, STORE)));
+    ASSERT("When the two entries match the same address range and the transaction is legal according to the first entry, the transaction is legal",  mmu->iopmp_ok(sid, 0, 12, LOAD));
+    ASSERT("When the two entries match the same address range and the transaction is legal according to the second entry, the transaction is legal", mmu->iopmp_ok(sid, 0, 12, STORE));
 }
 
 
 void run_mmu_tests() {
-    std::cout << "Running MMU tests" << std::endl;
+    std::cout << "IOPMP MMU tests" << std::endl;
+
+    // iopmp_ok
+    test_iopmp_ok();
+    test_iopmp_ok_source_linked_with_no_md();
+    test_iopmp_ok_md_linked_with_no_entry();
+    test_iopmp_ok_two_entries_match();
+
+    end_test();
 }

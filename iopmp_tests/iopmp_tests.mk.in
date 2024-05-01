@@ -1,0 +1,14 @@
+iopmp_tests_subproject_deps = \
+	riscv \
+
+iopmp_tests_hdrs = \
+    iopmp-main.h \
+    csr-tests.h \
+    mmu-tests.h \
+    util.h \
+
+iopmp_tests_srcs = \
+    iopmp-main.cc \
+    util.cc \
+    csr-tests.cc \
+    mmu-tests.cc \
