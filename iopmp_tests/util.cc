@@ -51,11 +51,11 @@ void store_paddr(entry_addr_csr_t_p entry_addr, reg_t paddr) {
 }
 
 void write_entry_cfg(processor_t* proc, int entry_cfg_idx, reg_t val) {
-    proc->put_csr(CSR_ENTRY_CFG0 + entry_cfg_idx * 16, val);
+    proc->put_csr(CSR_ENTRY_CFG0 + entry_cfg_idx, val);
 }
 
 reg_t read_entry_cfg(processor_t* proc, int entry_cfg_idx) {
-    return proc->get_csr(CSR_ENTRY_CFG0 + entry_cfg_idx * 16);
+    return proc->get_csr(CSR_ENTRY_CFG0 + entry_cfg_idx);
 }
 
 void end_test() {

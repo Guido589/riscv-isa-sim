@@ -433,14 +433,14 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
   // Initialize the mdcfg csrs
   // Specified in section 5.5: MDCFG Table, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
   for (int i = 0; i < max_mdcfg; ++i) {
-    reg_t addr = CSR_MDCFG0 + i * MDCFG_ADDR_OFFSET;
+    reg_t addr = CSR_MDCFG0 + i;
     csrmap[addr] = mdcfg[i] = std::make_shared<mdcfg_csr_t>(proc, addr);
   }
 
   // Initialize the srcmd csrs
   // Specified in section 5.6: SRCMD Table Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
   for (int i = 0; i < max_srcmd; ++i) {
-    reg_t addr = CSR_SRCMD0 + i * SRCMD_ADDR_OFFSET;
+    reg_t addr = CSR_SRCMD0 + i;
     csrmap[addr] = srcmd[i] = std::make_shared<srcmd_csr_t>(proc, addr);
   }
 
@@ -448,8 +448,8 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
   // Specified in section 5.7: Entry Array Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
   for (int i = 0; i < max_entry_addr; ++i) {
     csr_t_p cfg;
-    reg_t addr_cfg = CSR_ENTRY_CFG0 + i * ENTRY_OFFSET;
-    reg_t addr     = CSR_ENTRY_ADDR0 + i * ENTRY_OFFSET;
+    reg_t addr_cfg = CSR_ENTRY_CFG0 + i;
+    reg_t addr     = CSR_ENTRY_ADDR0 + i;
     csrmap[addr_cfg] = cfg = std::make_shared<entry_cfg_csr_t>(proc, addr_cfg);
     csrmap[addr] = entry_addr[i] = std::make_shared<entry_addr_csr_t>(proc, addr, cfg);
   }

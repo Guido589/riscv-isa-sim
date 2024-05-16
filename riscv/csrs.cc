@@ -282,7 +282,7 @@ bool pmpcfg_csr_t::unlogged_write(const reg_t val) noexcept {
 srcmd_csr_t::srcmd_csr_t(processor_t* const proc, const reg_t addr):
   csr_t(proc, addr),
   val(0),
-  srcmd_idx((address - CSR_SRCMD0) / SRCMD_ADDR_OFFSET){
+  srcmd_idx(address - CSR_SRCMD0){
 }
 
 reg_t srcmd_csr_t::read() const noexcept {
@@ -334,7 +334,7 @@ mdcfg_csr_t::mdcfg_csr_t(processor_t* const proc, const reg_t addr):
   // Intialize the top index value to the entry amount + 1
   initial_top_index(proc->entry_num + 1),
   val(initial_top_index),
-  mdcfg_idx((address - CSR_MDCFG0) / MDCFG_ADDR_OFFSET){
+  mdcfg_idx(address - CSR_MDCFG0){
 }
 
 reg_t mdcfg_csr_t::read() const noexcept {
@@ -409,7 +409,7 @@ entry_addr_csr_t::entry_addr_csr_t(processor_t* const proc, const reg_t addr, cs
   csr_t(proc, addr),
   val(0),
   cfg(cfg),
-  entry_idx((address - CSR_ENTRY_ADDR0) / ENTRY_OFFSET){
+  entry_idx(address - CSR_ENTRY_ADDR0){
 }
 
 reg_t entry_addr_csr_t::read() const noexcept {
@@ -494,7 +494,7 @@ bool entry_addr_csr_t::access_ok(access_type type) const noexcept {
 entry_cfg_csr_t::entry_cfg_csr_t(processor_t* const proc, const reg_t addr):
   csr_t(proc, addr), 
   val(0),
-  entry_idx((address - CSR_ENTRY_CFG0) / ENTRY_OFFSET){
+  entry_idx(address - CSR_ENTRY_CFG0){
 }
 
 reg_t entry_cfg_csr_t::read() const noexcept {
