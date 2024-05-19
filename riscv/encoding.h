@@ -316,7 +316,7 @@
 #define MDCFG_RSV       0xFFFFFFFFFFFF0000
 
 #define MDCFGLCK_L        0x1
-#define MDCFGLCK_F        0XFE
+#define MDCFGLCK_F        0xFE
 #define MDCFGLCK_F_SHIFT  1
 #define MDCFGLCK_RSV      0xFFFFFFFFFFFFFF00
 
@@ -330,7 +330,7 @@
 #define ENTRY_CFG_TOR   0x08
 
 #define ENTRYLCK_L        0x1
-#define ENTRYLCK_F        0X1FFFE
+#define ENTRYLCK_F        0x1FFFE
 #define ENTRYLCK_F_SHIFT  1
 #define ENTRYLCK_RSV      0xFFFFFFFFFFFE0000
 

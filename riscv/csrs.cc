@@ -429,10 +429,9 @@ reg_t mdcfglck_csr_t::read() const noexcept {
 bool mdcfglck_csr_t::unlogged_write(const reg_t val) noexcept {
   // Check if the csr is locked
   // Specified in section 3.2.2: MDCFG Table Protection, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
-  const bool locked = read() & MDCFGLCK_L;
+  const bool locked = this->val & MDCFGLCK_L;
   if (!locked) {
-    const reg_t lock       = state->mdcfglck->read();
-    const reg_t old_lock_f = (lock & MDCFGLCK_F) >> MDCFGLCK_F_SHIFT;
+    const reg_t old_lock_f = (this->val & MDCFGLCK_F) >> MDCFGLCK_F_SHIFT;
     const reg_t new_lock_f = (val & MDCFGLCK_F) >> MDCFGLCK_F_SHIFT;
 
     // f field is incremental-only
@@ -556,7 +555,7 @@ reg_t entry_cfg_csr_t::read() const noexcept {
 bool entry_cfg_csr_t::unlogged_write(const reg_t val) noexcept {
   // Check if this entry_cfg CSR is within the range of enabled entry_cfgs
   if (entry_idx < proc->entry_num) {
-    // Check if the entry_addr CSR is locked
+    // Check if the entry_cfg CSR is locked
     // Specified in section 3.2.3: Entry Protection, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
     const reg_t lock   = state->entrylck->read();
     const reg_t lock_f = (lock & ENTRYLCK_F) >> ENTRYLCK_F_SHIFT;
@@ -586,10 +585,9 @@ reg_t entrylck_csr_t::read() const noexcept {
 bool entrylck_csr_t::unlogged_write(const reg_t val) noexcept {
   // Check if the csr is locked
   // Specified in section 3.2.3: Entry Protection, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
-  const bool locked = read() & ENTRYLCK_L;
+  const bool locked = this->val & ENTRYLCK_L;
   if (!locked) {
-    const reg_t lock       = state->entrylck->read();
-    const reg_t old_lock_f = (lock & ENTRYLCK_F) >> ENTRYLCK_F_SHIFT;
+    const reg_t old_lock_f = (this->val & ENTRYLCK_F) >> ENTRYLCK_F_SHIFT;
     const reg_t new_lock_f = (val & ENTRYLCK_F) >> ENTRYLCK_F_SHIFT;
 
     // f field is incremental-only
