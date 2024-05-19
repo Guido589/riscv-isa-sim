@@ -42,6 +42,10 @@ mdcfg_csr_t_p get_mdcfg(processor_t* proc, int mdcfg_idx) {
     return proc->get_state()->mdcfg[mdcfg_idx];
 }
 
+mdcfglck_csr_t_p get_mdcfglck(processor_t* proc) {
+    return proc->get_state()->mdcfglck;
+}
+
 entry_addr_csr_t_p get_entry_addr(processor_t* proc, int entry_addr_idx) {
     return proc->get_state()->entry_addr[entry_addr_idx];
 }
@@ -56,6 +60,10 @@ void write_entry_cfg(processor_t* proc, int entry_cfg_idx, reg_t val) {
 
 reg_t read_entry_cfg(processor_t* proc, int entry_cfg_idx) {
     return proc->get_csr(CSR_ENTRY_CFG0 + entry_cfg_idx);
+}
+
+entrylck_csr_t_p get_entrylck(processor_t* proc) {
+    return proc->get_state()->entrylck;
 }
 
 void end_test() {

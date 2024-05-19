@@ -179,6 +179,18 @@ class mdcfg_csr_t: public csr_t {
 
 typedef std::shared_ptr<mdcfg_csr_t> mdcfg_csr_t_p;
 
+class mdcfglck_csr_t: public csr_t {
+ public:
+  mdcfglck_csr_t(processor_t* const proc, const reg_t addr);
+  virtual reg_t read() const noexcept override;
+ protected:
+  virtual bool unlogged_write(const reg_t val) noexcept override;
+ private:
+  reg_t val;
+};
+
+typedef std::shared_ptr<mdcfglck_csr_t> mdcfglck_csr_t_p;
+
 class entry_addr_csr_t: public csr_t {
  public:
   entry_addr_csr_t(processor_t* const proc, const reg_t addr, csr_t_p cfg);
@@ -214,6 +226,18 @@ class entry_cfg_csr_t: public csr_t {
 };
 
 typedef std::shared_ptr<entry_cfg_csr_t> entry_cfg_csr_t_p;
+
+class entrylck_csr_t: public csr_t {
+ public:
+  entrylck_csr_t(processor_t* const proc, const reg_t addr);
+  virtual reg_t read() const noexcept override;
+ protected:
+  virtual bool unlogged_write(const reg_t val) noexcept override;
+ private:
+  reg_t val;
+};
+
+typedef std::shared_ptr<entrylck_csr_t> entrylck_csr_t_p;
 
 class mseccfg_csr_t: public basic_csr_t {
  public:

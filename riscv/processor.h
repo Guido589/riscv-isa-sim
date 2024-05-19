@@ -161,7 +161,9 @@ struct state_t
 
   srcmd_csr_t_p srcmd[max_srcmd];
   mdcfg_csr_t_p mdcfg[max_mdcfg];
+  mdcfglck_csr_t_p mdcfglck;
   entry_addr_csr_t_p entry_addr[max_entry_addr];
+  entrylck_csr_t_p entrylck;
 
   float_csr_t_p fflags;
   float_csr_t_p frm;

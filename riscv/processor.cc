@@ -437,6 +437,8 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
     csrmap[addr] = mdcfg[i] = std::make_shared<mdcfg_csr_t>(proc, addr);
   }
 
+  csrmap[CSR_MDCFGLCK] = mdcfglck = std::make_shared<mdcfglck_csr_t>(proc, CSR_MDCFGLCK);
+
   // Initialize the srcmd csrs
   // Specified in section 5.6: SRCMD Table Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
   for (int i = 0; i < max_srcmd; ++i) {
@@ -453,6 +455,8 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
     csrmap[addr_cfg] = cfg = std::make_shared<entry_cfg_csr_t>(proc, addr_cfg);
     csrmap[addr] = entry_addr[i] = std::make_shared<entry_addr_csr_t>(proc, addr, cfg);
   }
+
+  csrmap[CSR_ENTRYLCK] = entrylck = std::make_shared<entrylck_csr_t>(proc, CSR_ENTRYLCK);
 
   csrmap[CSR_FFLAGS] = fflags = std::make_shared<float_csr_t>(proc, CSR_FFLAGS, FSR_AEXC >> FSR_AEXC_SHIFT, 0);
   csrmap[CSR_FRM] = frm = std::make_shared<float_csr_t>(proc, CSR_FRM, FSR_RD >> FSR_RD_SHIFT, 0);

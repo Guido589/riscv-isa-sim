@@ -292,13 +292,18 @@ reg_t srcmd_csr_t::read() const noexcept {
 bool srcmd_csr_t::unlogged_write(const reg_t val) noexcept {
   // Check if this srcmd CSR is within the range of enabled srcmds
   if (srcmd_idx < proc->sid_num) {
-    // Clear bits of disabled memory domains
-    // Specified in section 3.1: The Full Model, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
-    volatile int shift_amount = proc->md_num + SRCMD_BITMAP_BASE;
-    reg_t mask = (static_cast<reg_t>(1) << (shift_amount - 1) << 1) - 1;
-    // If it is, write the value to the CSR
-    this->val = val & mask;
-    return true;
+    // Check if the csr is locked
+    // Specified in section 3.2.1: SRCMD Table Protection, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+    const bool locked = read() & SRCMD_L;
+    if (!locked) {
+      // Clear bits of disabled memory domains
+      // Specified in section 3.1: The Full Model, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+      volatile int shift_amount = proc->md_num + SRCMD_BITMAP_BASE;
+      reg_t mask = (static_cast<reg_t>(1) << (shift_amount - 1) << 1) - 1;
+      // If it is, write the value to the CSR
+      this->val = val & mask;
+      return true;
+    }
   }
 
   return false;
@@ -348,12 +353,19 @@ bool mdcfg_csr_t::unlogged_write(const reg_t val) noexcept {
     const reg_t base_index_value     = base_index();
     const reg_t next_top_index_value = next_top_index();
 
+    // Check if the mdcfg CSR is locked
+    // Specified in section 3.2.2: MDCFG Table Protection, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+    const reg_t lock   = state->mdcfglck->read();
+    const reg_t lock_f = (lock & MDCFGLCK_F) >> MDCFGLCK_F_SHIFT;
+    const bool locked  = mdcfg_idx < lock_f; 
+
     // The top range value can not be equal to the initial value, and each entry can only be tied to one memory domain
     // Specified in section 2.5: IOPMP Entry and IOPMP Entry Array, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
     // This is enforced by requiring the top range values of the memory domains to be monotonically increasing
     if (top_index_value < initial_top_index &&
         top_index_value >= base_index_value &&
-        top_index_value <= next_top_index_value) {
+        top_index_value <= next_top_index_value &&
+        !locked) {
 
       // Write the value to the CSR, bits MDCFG_RSV must be zero on write
       // Specified in section 5.5: MDCFG Table, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
@@ -404,6 +416,38 @@ void mdcfg_csr_t::entries_belonging_to_md(std::vector<reg_t>* entry_idxs) const 
   }
 }
 
+// implement class mdcfglck_csr_t
+mdcfglck_csr_t::mdcfglck_csr_t(processor_t* const proc, const reg_t addr):
+  csr_t(proc, addr),
+  val(0){
+}
+
+reg_t mdcfglck_csr_t::read() const noexcept {
+  return val;
+}
+
+bool mdcfglck_csr_t::unlogged_write(const reg_t val) noexcept {
+  // Check if the csr is locked
+  // Specified in section 3.2.2: MDCFG Table Protection, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+  const bool locked = read() & MDCFGLCK_L;
+  if (!locked) {
+    const reg_t lock       = state->mdcfglck->read();
+    const reg_t old_lock_f = (lock & MDCFGLCK_F) >> MDCFGLCK_F_SHIFT;
+    const reg_t new_lock_f = (val & MDCFGLCK_F) >> MDCFGLCK_F_SHIFT;
+
+    // f field is incremental-only
+    // Specified in section 3.2.2: MDCFG Table Protection, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+    if (new_lock_f >= old_lock_f) {
+      // Bits MDCFGLCK_RSV must be zero on write
+      // Specified in section 5.3: Configuration Protection Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+      this->val = val & ~MDCFGLCK_RSV;
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // implement class entry_addr_csr_t
 entry_addr_csr_t::entry_addr_csr_t(processor_t* const proc, const reg_t addr, csr_t_p cfg):
   csr_t(proc, addr),
@@ -419,8 +463,16 @@ reg_t entry_addr_csr_t::read() const noexcept {
 bool entry_addr_csr_t::unlogged_write(const reg_t val) noexcept {
   // Check if this entry_addr CSR is within the range of enabled entry_addrs
   if (entry_idx < proc->entry_num) {
-    this->val = val;
-    return true;
+    // Check if the entry_addr CSR is locked
+    // Specified in section 3.2.3: Entry Protection, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+    const reg_t lock   = state->entrylck->read();
+    const reg_t lock_f = (lock & ENTRYLCK_F) >> ENTRYLCK_F_SHIFT;
+    const bool locked  = entry_idx < lock_f; 
+
+    if (!locked) {
+      this->val = val;
+      return true;
+    }
   }
 
   return false;
@@ -504,10 +556,50 @@ reg_t entry_cfg_csr_t::read() const noexcept {
 bool entry_cfg_csr_t::unlogged_write(const reg_t val) noexcept {
   // Check if this entry_cfg CSR is within the range of enabled entry_cfgs
   if (entry_idx < proc->entry_num) {
-    // Bits ENTRY_CFG_RSV must be zero on write
-    // Specified in section 5.7: Entry Array Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
-    this->val = val & ~ENTRY_CFG_RSV;
-    return true;
+    // Check if the entry_addr CSR is locked
+    // Specified in section 3.2.3: Entry Protection, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+    const reg_t lock   = state->entrylck->read();
+    const reg_t lock_f = (lock & ENTRYLCK_F) >> ENTRYLCK_F_SHIFT;
+    const bool locked  = entry_idx < lock_f; 
+
+    if (!locked) {
+      // Bits ENTRY_CFG_RSV must be zero on write
+      // Specified in section 5.7: Entry Array Registers, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+      this->val = val & ~ENTRY_CFG_RSV;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// implement class mdcfglck_csr_t
+entrylck_csr_t::entrylck_csr_t(processor_t* const proc, const reg_t addr):
+  csr_t(proc, addr),
+  val(0){
+}
+
+reg_t entrylck_csr_t::read() const noexcept {
+  return val;
+}
+
+bool entrylck_csr_t::unlogged_write(const reg_t val) noexcept {
+  // Check if the csr is locked
+  // Specified in section 3.2.3: Entry Protection, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+  const bool locked = read() & ENTRYLCK_L;
+  if (!locked) {
+    const reg_t lock       = state->entrylck->read();
+    const reg_t old_lock_f = (lock & ENTRYLCK_F) >> ENTRYLCK_F_SHIFT;
+    const reg_t new_lock_f = (val & ENTRYLCK_F) >> ENTRYLCK_F_SHIFT;
+
+    // f field is incremental-only
+    // Specified in section 3.2.3: MDCFG Table Protection, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+    if (new_lock_f >= old_lock_f) {
+      // Bits ENTRYLCK_RSV must be zero on write
+      // Specified in section 5.3:  Entry Protection, of the RISC-V IOPMP specification (Version 1.0.0-draft5)
+      this->val = val & ~ENTRYLCK_RSV;
+      return true;
+    }
   }
 
   return false;

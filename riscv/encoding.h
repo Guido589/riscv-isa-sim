@@ -307,12 +307,18 @@
 #define PMP_NA4   0x10
 #define PMP_NAPOT 0x18
 
-#define SRCMD_EN_MAX_IDX 30
+#define SRCMD_L           0x1
+#define SRCMD_EN_MAX_IDX  30
 #define SRCMD_ENH_MAX_IDX 31
 #define SRCMD_BITMAP_BASE 1
 
 #define MDCFG_TOP_RANGE 0xFFFF
 #define MDCFG_RSV       0xFFFFFFFFFFFF0000
+
+#define MDCFGLCK_L        0x1
+#define MDCFGLCK_F        0XFE
+#define MDCFGLCK_F_SHIFT  1
+#define MDCFGLCK_RSV      0xFFFFFFFFFFFFFF00
 
 #define ENTRY_ADDR_SHIFT 2
 #define ENTRY_CFG_R     0x01
@@ -322,6 +328,11 @@
 #define ENTRY_CFG_RSV   0xFFFFFFFFFFFFFFE0
 #define ENTRY_CFG_OFF   0
 #define ENTRY_CFG_TOR   0x08
+
+#define ENTRYLCK_L        0x1
+#define ENTRYLCK_F        0X1FFFE
+#define ENTRYLCK_F_SHIFT  1
+#define ENTRYLCK_RSV      0xFFFFFFFFFFFE0000
 
 #define IRQ_U_SOFT   0
 #define IRQ_S_SOFT   1
@@ -3683,6 +3694,9 @@
 #define CSR_ENTRY_CFG14  0xBEE
 #define CSR_ENTRY_ADDR15 0xBDF
 #define CSR_ENTRY_CFG15  0xBEF
+
+#define CSR_MDCFGLCK 0xBF0
+#define CSR_ENTRYLCK 0xBF1
 
 #define CSR_MCYCLEH 0xb80
 #define CSR_MINSTRETH 0xb82
